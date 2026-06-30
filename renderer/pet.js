@@ -4,9 +4,16 @@ const petEl = document.getElementById('pet');
 const bubbleEl = document.getElementById('bubble');
 const canvasEl = document.getElementById('petCanvas');
 const photoEl = document.getElementById('petPhoto');
-const vidEl = document.getElementById('petVideo');
 const vidCanvasEl = document.getElementById('petVideoCanvas');
-const VIDEO_SRC = { hamster: 'assets/real-hamster.mp4', rabbit: 'assets/real-rabbit.mp4' };
+const vidEls = {
+  idle: document.getElementById('petVideoIdle'),
+  walk: document.getElementById('petVideoWalk'),
+  react: document.getElementById('petVideoReact'),
+};
+const VIDEO_SET = {
+  hamster: { idle: 'assets/real-hamster.mp4', walk: 'assets/real-hamster-walk.mp4', react: 'assets/real-hamster-react.mp4' },
+  rabbit: { idle: 'assets/real-rabbit.mp4' },
+};
 const setDisplay = (el, d) => { if (el.style.display !== d) el.style.display = d; };
 let ctrl = null;
 let vctrl = null;
@@ -127,8 +134,11 @@ function setupMouse() {
 }
 
 function pat() {
-  reactUntil = (lastTs || 0) + 1500;
+  reactUntil = (lastTs || 0) + 2200;
   vy = 520;
+  if (vidEls.react && vidEls.react.getAttribute('src')) {
+    try { vidEls.react.currentTime = 0; vidEls.react.play().catch(() => {}); } catch (e) { /* ignore */ }
+  }
 }
 
 // ---- timer bubble (only shown on hover) ----------------------------------
@@ -168,17 +178,22 @@ function loop(ts) {
 
   // ----- render mode: live 3D / photoreal video / photoreal still -----
   const char = settings ? settings.char : 'hamster';
-  const videoSrc = realistic ? VIDEO_SRC[char] : null;
+  const vset = realistic ? VIDEO_SET[char] : null;
+  const videoMode = !!vset;
   setDisplay(canvasEl, !realistic ? 'block' : 'none');
-  setDisplay(photoEl, (realistic && !videoSrc) ? 'block' : 'none');
-  setDisplay(vidCanvasEl, (realistic && videoSrc) ? 'block' : 'none');
-  if (realistic && !videoSrc) {
+  setDisplay(photoEl, (realistic && !videoMode) ? 'block' : 'none');
+  setDisplay(vidCanvasEl, videoMode ? 'block' : 'none');
+  if (realistic && !videoMode) {
     const src = `assets/real-${char}.png`;
     if (photoEl.getAttribute('src') !== src) photoEl.setAttribute('src', src);
   }
-  if (realistic && videoSrc) {
-    if (curVideoChar !== char) { curVideoChar = char; vidEl.src = videoSrc; vidEl.play().catch(() => {}); }
-    if (!vctrl) vctrl = window.VideoPet.create(vidCanvasEl, vidEl);
+  if (videoMode && curVideoChar !== char) {
+    curVideoChar = char;
+    for (const k of ['idle', 'walk', 'react']) {
+      const src = vset[k] || vset.idle;
+      if (vidEls[k].getAttribute('src') !== src) { vidEls[k].src = src; vidEls[k].play().catch(() => {}); }
+    }
+    vctrl = window.VideoPet.create(vidCanvasEl, vidEls);
   }
 
   // ----- live 3D character (skipped in realistic mode) -----
@@ -205,7 +220,7 @@ function loop(ts) {
     if (petY <= 0) { petY = 0; vy = 0; }
   } else if (reacting) {
     hopY = Math.abs(Math.sin(ts / 110)) * 14;
-  } else if (realistic) {
+  } else if (realistic && !videoMode) {
     hopY = (!calm && phase === 'celebrate') ? Math.abs(Math.sin(ts / 160)) * 16 : 0;
   } else if (calm) {
     hopY = 0;                                  // stay put, only gentle 3D breathing
@@ -243,12 +258,20 @@ function loop(ts) {
   petEl.style.transform =
     `translate(-50%, ${-lift}px) rotate(${(lean + swing).toFixed(2)}deg)`;
 
-  // ----- photoreal: live video render + parallax tilt toward the cursor -----
+  // ----- photoreal: behavior-driven live video (or still) + parallax tilt -----
   if (realistic) {
     const breathe = 1 + Math.sin(ts / 1400) * 0.015;
-    const tf = `perspective(600px) rotateY(${(lookX * 18).toFixed(1)}deg) rotateX(${(-lookY * 14).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
-    if (videoSrc) { if (vctrl) vctrl.frame(); vidCanvasEl.style.transform = tf; }
-    else photoEl.style.transform = tf;
+    const tilt = `perspective(600px) rotateY(${(lookX * 18).toFixed(1)}deg) rotateX(${(-lookY * 14).toFixed(1)}deg)`;
+    if (videoMode) {
+      let vbeh = 'idle';
+      if (reacting) vbeh = 'react';
+      else if (!calm && (phase === 'celebrate' || phase === 'soon' || beh === 'walk')) vbeh = 'walk';
+      if (vctrl) { vctrl.setBehavior(vbeh); vctrl.frame(); }
+      const flip = (vbeh === 'walk' && dir < 0) ? -1 : 1;
+      vidCanvasEl.style.transform = `${tilt} scale(${(flip * breathe).toFixed(3)}, ${breathe.toFixed(3)})`;
+    } else {
+      photoEl.style.transform = `${tilt} scale(${breathe.toFixed(3)})`;
+    }
   }
 
   const showText = (overPet && !dragging) || reacting;

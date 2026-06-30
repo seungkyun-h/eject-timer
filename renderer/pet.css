@@ -42,7 +42,7 @@ html, body {
   transform-origin: 50% 70%;
 }
 
-#petVideo { display: none; }
+#petVideoIdle, #petVideoWalk, #petVideoReact { display: none; }
 
 .bubble {
   position: absolute;

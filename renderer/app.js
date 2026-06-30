@@ -7,6 +7,10 @@ let ctrl = null;
 let lastRaf = null;
 let curBeh = 'idle';
 let lookX = 0, lookY = 0;
+let vctrl = null;
+let curVideoChar = null;
+const VIDEO_SRC = { hamster: 'assets/real-hamster.mp4', rabbit: 'assets/real-rabbit.mp4' };
+const setDisplay = (el, d) => { if (el.style.display !== d) el.style.display = d; };
 
 const $ = (id) => document.getElementById(id);
 
@@ -28,21 +32,28 @@ function raf(ts) {
   lastRaf = ts;
   const calm = settings && settings.calm;
   const realistic = settings && settings.realistic;
-  const canvas = $('charCanvas'), photo = $('charPhoto');
+  const char = settings ? settings.char : 'hamster';
+  const videoSrc = realistic ? VIDEO_SRC[char] : null;
+  const canvas = $('charCanvas'), photo = $('charPhoto'), vidc = $('charVideoCanvas'), vid = $('charVideo');
+  setDisplay(canvas, !realistic ? 'block' : 'none');
+  setDisplay(photo, (realistic && !videoSrc) ? 'block' : 'none');
+  setDisplay(vidc, (realistic && videoSrc) ? 'block' : 'none');
   if (realistic) {
-    if (canvas.style.display !== 'none') canvas.style.display = 'none';
-    if (photo.style.display !== 'block') photo.style.display = 'block';
-    const src = `assets/real-${settings ? settings.char : 'hamster'}.png`;
-    if (photo.getAttribute('src') !== src) photo.setAttribute('src', src);
     const breathe = 1 + Math.sin(ts / 1400) * 0.015;
-    photo.style.transform = `perspective(500px) rotateY(${(lookX * 16).toFixed(1)}deg) rotateX(${(-lookY * 12).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
-  } else {
-    if (canvas.style.display === 'none') canvas.style.display = 'block';
-    if (photo.style.display === 'block') photo.style.display = 'none';
-    if (ctrl) {
-      ctrl.setState({ behavior: calm ? 'idle' : curBeh, dir: 1, lookX, lookY }); // calm keeps gaze
-      ctrl.frame(dt);
+    const tf = `perspective(500px) rotateY(${(lookX * 16).toFixed(1)}deg) rotateX(${(-lookY * 12).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
+    if (videoSrc) {
+      if (curVideoChar !== char) { curVideoChar = char; vid.src = videoSrc; vid.play().catch(() => {}); }
+      if (!vctrl) vctrl = window.VideoPet.create(vidc, vid);
+      vctrl.frame();
+      vidc.style.transform = tf;
+    } else {
+      const src = `assets/real-${char}.png`;
+      if (photo.getAttribute('src') !== src) photo.setAttribute('src', src);
+      photo.style.transform = tf;
     }
+  } else if (ctrl) {
+    ctrl.setState({ behavior: calm ? 'idle' : curBeh, dir: 1, lookX, lookY });
+    ctrl.frame(dt);
   }
   lookX *= 0.94; lookY *= 0.94; // ease back to front when not hovering the widget
   requestAnimationFrame(raf);

@@ -7,7 +7,7 @@
   const PALETTES = {
     hamster: { kind: 'hamster', body: 0xE0A24C, belly: 0xF5E7CE, ear: 0xCB8B43, inner: 0xA9705C, nose: 0xB87A7A, arm: 0xCB8B43, foot: 0xF5E7CE, mouth: 0x7a5246 },
     rabbit: { kind: 'rabbit', body: 0xFAFAF7, belly: 0xFFFEFB, ear: 0xFAFAF7, inner: 0xE7A1AE, nose: 0xD98E9E, arm: 0xFAFAF7, foot: 0xFAFAF7, mouth: 0xB98A86 },
-    shrimp: { kind: 'shrimp', body: 0xF6906E, belly: 0xFFD7C6, ear: 0xE36A4C, inner: 0xE36A4C, nose: 0xD9685E, arm: 0xF07E5C, foot: 0xF6B0A0, mouth: 0x9c5a4c },
+    shrimp: { kind: 'shrimp', body: 0xDE5C3C, belly: 0xF2A88E, ear: 0xBE4A2E, inner: 0xBE4A2E, nose: 0xBE4A2E, arm: 0xCB5034, foot: 0xE08468, mouth: 0x873f2f },
   };
 
   const mat = (c, rough = 0.62) => new THREE.MeshStandardMaterial({ color: new THREE.Color(c), roughness: rough, metalness: 0 });

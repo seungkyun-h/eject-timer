@@ -151,7 +151,7 @@ function createPet() {
       setTimeout(async () => {
         try { fs.writeFileSync(process.env.TT_SHOT_PET, (await petWin.webContents.capturePage()).toPNG()); } catch (e) { console.error(e); }
         isQuitting = true; app.quit();
-      }, 1600);
+      }, Number(process.env.TT_SHOT_DELAY) || 1600);
     });
   }
   petWin.on('closed', () => { petWin = null; });
@@ -263,7 +263,7 @@ app.whenReady().then(() => {
         } catch (e) { console.error('shot failed:', e); }
         isQuitting = true;
         app.quit();
-      }, 1500);
+      }, Number(process.env.TT_SHOT_DELAY) || 1500);
     });
   }
 });

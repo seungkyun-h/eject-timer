@@ -34,7 +34,7 @@
 
     <div class="scene" id="scene">
       <div class="bubble" id="statusEmoji"></div>
-      <div class="char" id="char"><canvas id="charCanvas" width="150" height="150"></canvas><img id="charPhoto" class="photo" alt="" draggable="false" /></div>
+      <div class="char" id="char"><canvas id="charCanvas" width="150" height="150"></canvas><img id="charPhoto" class="photo" alt="" draggable="false" /><canvas id="charVideoCanvas" class="vid" width="170" height="200"></canvas><video id="charVideo" muted loop playsinline></video></div>
       <div class="home">🏡</div>
       <div class="track"><div class="track-fill" id="progressFill"></div></div>
     </div>
@@ -63,6 +63,7 @@
   <script src="bridge.js"></script>
   <script src="timer-core.js"></script>
   <script src="character3d.js"></script>
+  <script src="video-pet.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

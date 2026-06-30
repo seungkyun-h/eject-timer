@@ -4,7 +4,13 @@ const petEl = document.getElementById('pet');
 const bubbleEl = document.getElementById('bubble');
 const canvasEl = document.getElementById('petCanvas');
 const photoEl = document.getElementById('petPhoto');
+const vidEl = document.getElementById('petVideo');
+const vidCanvasEl = document.getElementById('petVideoCanvas');
+const VIDEO_SRC = { hamster: 'assets/real-hamster.mp4', rabbit: 'assets/real-rabbit.mp4' };
+const setDisplay = (el, d) => { if (el.style.display !== d) el.style.display = d; };
 let ctrl = null;
+let vctrl = null;
+let curVideoChar = null;
 
 let settings = null;
 let phase = 'work';
@@ -160,15 +166,19 @@ function loop(ts) {
   const calm = settings && settings.calm;
   const realistic = settings && settings.realistic;
 
-  // ----- mode: live 3D canvas vs photoreal image -----
-  if (realistic) {
-    if (canvasEl.style.display !== 'none') canvasEl.style.display = 'none';
-    if (photoEl.style.display !== 'block') photoEl.style.display = 'block';
-    const src = `assets/real-${settings ? settings.char : 'hamster'}.png`;
+  // ----- render mode: live 3D / photoreal video / photoreal still -----
+  const char = settings ? settings.char : 'hamster';
+  const videoSrc = realistic ? VIDEO_SRC[char] : null;
+  setDisplay(canvasEl, !realistic ? 'block' : 'none');
+  setDisplay(photoEl, (realistic && !videoSrc) ? 'block' : 'none');
+  setDisplay(vidCanvasEl, (realistic && videoSrc) ? 'block' : 'none');
+  if (realistic && !videoSrc) {
+    const src = `assets/real-${char}.png`;
     if (photoEl.getAttribute('src') !== src) photoEl.setAttribute('src', src);
-  } else {
-    if (canvasEl.style.display === 'none') canvasEl.style.display = 'block';
-    if (photoEl.style.display === 'block') photoEl.style.display = 'none';
+  }
+  if (realistic && videoSrc) {
+    if (curVideoChar !== char) { curVideoChar = char; vidEl.src = videoSrc; vidEl.play().catch(() => {}); }
+    if (!vctrl) vctrl = window.VideoPet.create(vidCanvasEl, vidEl);
   }
 
   // ----- live 3D character (skipped in realistic mode) -----
@@ -233,11 +243,12 @@ function loop(ts) {
   petEl.style.transform =
     `translate(-50%, ${-lift}px) rotate(${(lean + swing).toFixed(2)}deg)`;
 
-  // ----- photoreal parallax: the photo tilts toward the cursor -----
+  // ----- photoreal: live video render + parallax tilt toward the cursor -----
   if (realistic) {
     const breathe = 1 + Math.sin(ts / 1400) * 0.015;
-    photoEl.style.transform =
-      `perspective(600px) rotateY(${(lookX * 18).toFixed(1)}deg) rotateX(${(-lookY * 14).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
+    const tf = `perspective(600px) rotateY(${(lookX * 18).toFixed(1)}deg) rotateX(${(-lookY * 14).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
+    if (videoSrc) { if (vctrl) vctrl.frame(); vidCanvasEl.style.transform = tf; }
+    else photoEl.style.transform = tf;
   }
 
   const showText = (overPet && !dragging) || reacting;

@@ -35,6 +35,15 @@ html, body {
   transform-origin: 50% 60%;
 }
 
+.pet .vid {
+  display: none;
+  width: 132px;
+  height: 150px;
+  transform-origin: 50% 70%;
+}
+
+#petVideo { display: none; }
+
 .bubble {
   position: absolute;
   bottom: 64px;

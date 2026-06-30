@@ -78,6 +78,8 @@ html, body {
 }
 .char canvas { width: 80px; height: 80px; display: block; filter: drop-shadow(0 3px 3px rgba(120, 80, 40, 0.25)); }
 .char .photo { display: none; width: 84px; height: 84px; object-fit: contain; transform-origin: 50% 60%; filter: drop-shadow(0 3px 3px rgba(120, 80, 40, 0.25)); }
+.char .vid { display: none; width: 74px; height: 86px; transform-origin: 50% 70%; filter: drop-shadow(0 3px 3px rgba(120, 80, 40, 0.22)); }
+#charVideo { display: none; }
 .bubble {
   position: absolute; bottom: 54px; left: 3%;
   font-size: 16px; transition: left 0.9s linear;

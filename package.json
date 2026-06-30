@@ -19,6 +19,9 @@
     "directories": {
       "output": "dist"
     },
+    "asarUnpack": [
+      "**/*.mp4"
+    ],
     "files": [
       "main.js",
       "preload.js",

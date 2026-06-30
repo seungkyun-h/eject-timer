@@ -41,48 +41,61 @@
 
   function buildShrimp(p) {
     const g = new THREE.Group();
-    const bodyMat = mat(p.body, 0.55);
-    const belly = mat(p.belly, 0.6);
-    const seg = mat(p.ear, 0.55);
-    const antMat = mat(p.arm, 0.6);
+    const bodyMat = mat(p.body, 0.5);
+    const belly = mat(p.belly, 0.55);
+    const seg = mat(p.ear, 0.5);
+    const antMat = mat(p.arm, 0.55);
+    const tailMat = mat(p.foot, 0.5);
 
-    const body = ball(g, 1.0, [0, 0, 0], [0.92, 1.08, 0.9], bodyMat);
-    ball(g, 0.62, [0, -0.12, 0.52], [0.82, 0.9, 0.5], belly);     // lighter belly
-    ball(g, 1.0, [0, 0.34, 0], [0.9, 0.12, 0.86], seg);           // segment rings
-    ball(g, 1.0, [0, 0.02, 0], [0.94, 0.12, 0.9], seg);
-    ball(g, 1.0, [0, -0.3, 0], [0.9, 0.12, 0.86], seg);
+    // head/thorax (wide top) tapering into a curled, segmented abdomen
+    const body = ball(g, 0.84, [0, 0.42, 0], [1.02, 1.0, 0.92], bodyMat);   // head/thorax
+    ball(g, 0.64, [0, -0.12, 0.06], [1.0, 0.95, 0.9], bodyMat);             // upper abdomen
+    ball(g, 0.48, [0, -0.62, 0.18], [0.98, 0.92, 0.86], bodyMat);           // mid (curls forward)
+    ball(g, 0.34, [0, -1.0, 0.36], [0.94, 0.9, 0.84], bodyMat);             // lower
+    ball(g, 0.46, [0, 0.24, 0.52], [0.72, 0.82, 0.42], belly);             // light belly
 
-    ball(g, 0.32, [0, -0.92, -0.25], [0.55, 0.3, 0.6], bodyMat);  // tail fan
-    ball(g, 0.28, [-0.32, -0.86, -0.22], [0.42, 0.28, 0.5], bodyMat);
-    ball(g, 0.28, [0.32, -0.86, -0.22], [0.42, 0.28, 0.5], bodyMat);
+    ball(g, 0.64, [0, -0.12, 0.06], [1.02, 0.12, 0.92], seg);              // segment ridges
+    ball(g, 0.48, [0, -0.62, 0.18], [1.0, 0.12, 0.88], seg);
+    ball(g, 0.34, [0, -1.0, 0.36], [0.96, 0.12, 0.86], seg);
 
-    const earL = ball(g, 0.5, [-0.2, 0.9, 0.05], [0.09, 0.85, 0.09], antMat); // antennae
-    const earR = ball(g, 0.5, [0.2, 0.9, 0.05], [0.09, 0.85, 0.09], antMat);
-    earL.geometry.translate(0, -0.5, 0); earL.position.y += 0.5;
-    earR.geometry.translate(0, -0.5, 0); earR.position.y += 0.5;
+    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.62, 16), bodyMat); // rostrum
+    spike.position.set(0, 0.98, 0.34); spike.rotation.x = 0.5;
+    g.add(spike);
 
-    const eyeY = 0.42, eyeZ = 0.72, eyeR = 0.16;
-    const eyeL = makeEye(g, -0.27, eyeY, eyeZ, eyeR);
-    const eyeR2 = makeEye(g, 0.27, eyeY, eyeZ, eyeR);
+    const eyeY = 0.5, eyeZ = 0.6, eyeR = 0.18;
+    const eyeL = makeEye(g, -0.35, eyeY, eyeZ, eyeR);
+    const eyeR2 = makeEye(g, 0.35, eyeY, eyeZ, eyeR);
+
+    const earL = ball(g, 0.5, [-0.22, 0.95, 0.02], [0.055, 1.5, 0.055], antMat); // long antennae
+    const earR = ball(g, 0.5, [0.22, 0.95, 0.02], [0.055, 1.5, 0.055], antMat);
+    earL.geometry.translate(0, -0.6, 0); earL.position.y += 0.6; earL.rotation.x = -0.16;
+    earR.geometry.translate(0, -0.6, 0); earR.position.y += 0.6; earR.rotation.x = -0.16;
 
     const smile = makeSmile(0.08, p.mouth);
-    smile.position.set(0, 0.06, 0.74);
-    g.add(smile);
+    smile.position.set(0, 0.2, 0.64); g.add(smile);
     const mouthO = new THREE.Mesh(new THREE.SphereGeometry(0.06, 20, 20), mat(0x6a3f33, 0.4));
-    mouthO.position.set(0, 0.05, 0.78); mouthO.scale.set(1, 1.2, 1); mouthO.visible = false;
-    g.add(mouthO);
+    mouthO.position.set(0, 0.19, 0.68); mouthO.scale.set(1, 1.2, 1); mouthO.visible = false; g.add(mouthO);
 
-    const armBaseL = [-0.5, -0.42, 0.42], armBaseR = [0.5, -0.42, 0.42];
-    const armL = ball(g, 0.14, armBaseL, [1, 1, 1], antMat);
-    const armR = ball(g, 0.14, armBaseR, [1, 1, 1], antMat);
-    const footBaseL = [-0.26, -0.82, 0.4], footBaseR = [0.26, -0.82, 0.4];
-    const footL = ball(g, 0.17, footBaseL, [1, 0.8, 1.1], mat(p.foot, 0.6));
-    const footR = ball(g, 0.17, footBaseR, [1, 0.8, 1.1], mat(p.foot, 0.6));
+    for (const [dx, rz] of [[0, 0], [-0.5, 0.5], [0.5, -0.5], [-1, 0.95], [1, -0.95]]) { // fan tail
+      const bl = ball(g, 0.3, [dx * 0.16, -1.32, 0.5], [0.16, 0.5, 0.13], tailMat);
+      bl.rotation.z = rz; bl.rotation.x = 0.5;
+    }
+
+    const armBaseL = [-0.42, -0.5, 0.42], armBaseR = [0.42, -0.5, 0.42];
+    const armL = ball(g, 0.12, armBaseL, [1, 1, 1], antMat);
+    const armR = ball(g, 0.12, armBaseR, [1, 1, 1], antMat);
+    const footBaseL = [-0.18, -0.86, 0.5], footBaseR = [0.18, -0.86, 0.5];
+    const footL = ball(g, 0.12, footBaseL, [1, 1, 1], antMat);
+    const footR = ball(g, 0.12, footBaseR, [1, 1, 1], antMat);
+    ball(g, 0.1, [-0.32, -1.06, 0.52], [1, 1, 1], antMat); // extra little legs
+    ball(g, 0.1, [0.32, -1.06, 0.52], [1, 1, 1], antMat);
+
+    g.scale.set(0.86, 0.86, 0.86); // fit the shared camera frame
 
     return {
       group: g, body, earL, earR, eyeL, eyeR: eyeR2, smile, mouthO, armL, armR, footL, footR,
-      baseBodyScale: [0.92, 1.08, 0.9],
-      eyeBaseL: [-0.27, eyeY, eyeZ], eyeBaseR: [0.27, eyeY, eyeZ],
+      baseBodyScale: [1.02, 1.0, 0.92],
+      eyeBaseL: [-0.35, eyeY, eyeZ], eyeBaseR: [0.35, eyeY, eyeZ],
       base: { armL: armBaseL, armR: armBaseR, footL: footBaseL, footR: footBaseR },
     };
   }

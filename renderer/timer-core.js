@@ -29,6 +29,7 @@
         grab: 'assets/rabbit-grab.png',
       },
     },
+    shrimp: { key: 'shrimp', emoji: '🦐', name: '새우' },
   };
 
   // Resolve a pose to an image src (falls back to idle, then to the bundled 3D render).

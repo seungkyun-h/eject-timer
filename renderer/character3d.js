@@ -7,6 +7,7 @@
   const PALETTES = {
     hamster: { kind: 'hamster', body: 0xE0A24C, belly: 0xF5E7CE, ear: 0xCB8B43, inner: 0xA9705C, nose: 0xB87A7A, arm: 0xCB8B43, foot: 0xF5E7CE, mouth: 0x7a5246 },
     rabbit: { kind: 'rabbit', body: 0xFAFAF7, belly: 0xFFFEFB, ear: 0xFAFAF7, inner: 0xE7A1AE, nose: 0xD98E9E, arm: 0xFAFAF7, foot: 0xFAFAF7, mouth: 0xB98A86 },
+    shrimp: { kind: 'shrimp', body: 0xF6906E, belly: 0xFFD7C6, ear: 0xE36A4C, inner: 0xE36A4C, nose: 0xD9685E, arm: 0xF07E5C, foot: 0xF6B0A0, mouth: 0x9c5a4c },
   };
 
   const mat = (c, rough = 0.62) => new THREE.MeshStandardMaterial({ color: new THREE.Color(c), roughness: rough, metalness: 0 });
@@ -38,8 +39,57 @@
     return m;
   }
 
+  function buildShrimp(p) {
+    const g = new THREE.Group();
+    const bodyMat = mat(p.body, 0.55);
+    const belly = mat(p.belly, 0.6);
+    const seg = mat(p.ear, 0.55);
+    const antMat = mat(p.arm, 0.6);
+
+    const body = ball(g, 1.0, [0, 0, 0], [0.92, 1.08, 0.9], bodyMat);
+    ball(g, 0.62, [0, -0.12, 0.52], [0.82, 0.9, 0.5], belly);     // lighter belly
+    ball(g, 1.0, [0, 0.34, 0], [0.9, 0.12, 0.86], seg);           // segment rings
+    ball(g, 1.0, [0, 0.02, 0], [0.94, 0.12, 0.9], seg);
+    ball(g, 1.0, [0, -0.3, 0], [0.9, 0.12, 0.86], seg);
+
+    ball(g, 0.32, [0, -0.92, -0.25], [0.55, 0.3, 0.6], bodyMat);  // tail fan
+    ball(g, 0.28, [-0.32, -0.86, -0.22], [0.42, 0.28, 0.5], bodyMat);
+    ball(g, 0.28, [0.32, -0.86, -0.22], [0.42, 0.28, 0.5], bodyMat);
+
+    const earL = ball(g, 0.5, [-0.2, 0.9, 0.05], [0.09, 0.85, 0.09], antMat); // antennae
+    const earR = ball(g, 0.5, [0.2, 0.9, 0.05], [0.09, 0.85, 0.09], antMat);
+    earL.geometry.translate(0, -0.5, 0); earL.position.y += 0.5;
+    earR.geometry.translate(0, -0.5, 0); earR.position.y += 0.5;
+
+    const eyeY = 0.42, eyeZ = 0.72, eyeR = 0.16;
+    const eyeL = makeEye(g, -0.27, eyeY, eyeZ, eyeR);
+    const eyeR2 = makeEye(g, 0.27, eyeY, eyeZ, eyeR);
+
+    const smile = makeSmile(0.08, p.mouth);
+    smile.position.set(0, 0.06, 0.74);
+    g.add(smile);
+    const mouthO = new THREE.Mesh(new THREE.SphereGeometry(0.06, 20, 20), mat(0x6a3f33, 0.4));
+    mouthO.position.set(0, 0.05, 0.78); mouthO.scale.set(1, 1.2, 1); mouthO.visible = false;
+    g.add(mouthO);
+
+    const armBaseL = [-0.5, -0.42, 0.42], armBaseR = [0.5, -0.42, 0.42];
+    const armL = ball(g, 0.14, armBaseL, [1, 1, 1], antMat);
+    const armR = ball(g, 0.14, armBaseR, [1, 1, 1], antMat);
+    const footBaseL = [-0.26, -0.82, 0.4], footBaseR = [0.26, -0.82, 0.4];
+    const footL = ball(g, 0.17, footBaseL, [1, 0.8, 1.1], mat(p.foot, 0.6));
+    const footR = ball(g, 0.17, footBaseR, [1, 0.8, 1.1], mat(p.foot, 0.6));
+
+    return {
+      group: g, body, earL, earR, eyeL, eyeR: eyeR2, smile, mouthO, armL, armR, footL, footR,
+      baseBodyScale: [0.92, 1.08, 0.9],
+      eyeBaseL: [-0.27, eyeY, eyeZ], eyeBaseR: [0.27, eyeY, eyeZ],
+      base: { armL: armBaseL, armR: armBaseR, footL: footBaseL, footR: footBaseR },
+    };
+  }
+
   function buildModel(kind) {
     const p = PALETTES[kind] || PALETTES.hamster;
+    if (kind === 'shrimp') return buildShrimp(p);
     const group = new THREE.Group();
     const bodyMat = mat(p.body, 0.85);
     const armMat = mat(p.arm, 0.85);
@@ -109,6 +159,7 @@
     return {
       group, body, earL, earR, eyeL, eyeR: eyeR2, smile, mouthO,
       armL, armR, footL, footR,
+      baseBodyScale: [1.06, 0.96, 0.92],
       eyeBaseL: [-0.3, eyeY, eyeZ], eyeBaseR: [0.3, eyeY, eyeZ],
       base: { armL: armBaseL, armR: armBaseR, footL: footBaseL, footR: footBaseR },
     };
@@ -209,7 +260,8 @@
       // apply (smoothly)
       m.group.position.y = lerp(m.group.position.y, bodyY, 0.3);
       m.group.rotation.z = lerp(m.group.rotation.z, tiltZ, 0.2);
-      m.body.scale.set(1.06, 0.96 * breathe, 0.92);
+      const bs = m.baseBodyScale || [1.06, 0.96, 0.92];
+      m.body.scale.set(bs[0], bs[1] * breathe, bs[2]);
       for (const [mesh, target] of [[m.armL, aL], [m.armR, aR], [m.footL, fL], [m.footR, fR]]) {
         mesh.position.x = lerp(mesh.position.x, target[0], 0.3);
         mesh.position.y = lerp(mesh.position.y, target[1], 0.3);

@@ -130,11 +130,24 @@ function updateTimer() {
   if (!settings) return;
   const t = computeTimer(settings, new Date());
   phase = t.phase;
-  const txt = t.remainingSec > 0
-    ? `퇴근까지 ${fmtShort(t.remainingSec)}`
-    : `+${fmtShort(-t.remainingSec)} 추가근무`;
-  const prefix = phase === 'celebrate' ? '🎉 ' : phase === 'overtime' ? '💤 ' : '';
-  bubbleText = prefix + txt;
+  if (settings.char === 'shrimp') {
+    // 유쾌한 새우 말투 (~새우)
+    if (t.remainingSec > 0) {
+      bubbleText = phase === 'soon'
+        ? `곧 퇴근이새우~! ${fmtShort(t.remainingSec)}`
+        : `퇴근까지 ${fmtShort(t.remainingSec)} 남았새우~`;
+    } else {
+      bubbleText = phase === 'celebrate'
+        ? '🦐 퇴근이새우~!'
+        : `+${fmtShort(-t.remainingSec)} 야근이새우...`;
+    }
+  } else {
+    const txt = t.remainingSec > 0
+      ? `퇴근까지 ${fmtShort(t.remainingSec)}`
+      : `+${fmtShort(-t.remainingSec)} 추가근무`;
+    const prefix = phase === 'celebrate' ? '🎉 ' : phase === 'overtime' ? '💤 ' : '';
+    bubbleText = prefix + txt;
+  }
 }
 
 // ---- main loop -----------------------------------------------------------
@@ -168,7 +181,7 @@ function loop(ts) {
     else if (phase === 'soon' || beh === 'walk') behavior = 'walk';
     else if (phase === 'overtime' || beh === 'sleep') behavior = 'sleep';
     ctrl.setCharacter(settings ? settings.char : 'hamster');
-    ctrl.setState({ behavior, dir, lookX: calm ? 0 : lookX, lookY: calm ? 0 : lookY });
+    ctrl.setState({ behavior, dir, lookX, lookY }); // calm stops movement but keeps gaze
     ctrl.frame(dt * 1000);
   }
 
@@ -222,18 +235,17 @@ function loop(ts) {
 
   // ----- photoreal parallax: the photo tilts toward the cursor -----
   if (realistic) {
-    const breathe = calm ? 1 : 1 + Math.sin(ts / 1400) * 0.015;
-    const lx = calm ? 0 : lookX, ly = calm ? 0 : lookY;
+    const breathe = 1 + Math.sin(ts / 1400) * 0.015;
     photoEl.style.transform =
-      `perspective(600px) rotateY(${(lx * 18).toFixed(1)}deg) rotateX(${(-ly * 14).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
+      `perspective(600px) rotateY(${(lookX * 18).toFixed(1)}deg) rotateX(${(-lookY * 14).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
   }
 
   const showText = (overPet && !dragging) || reacting;
   if (showText) {
-    bubbleEl.textContent = reacting ? '💕 헤헤' : bubbleText;
+    bubbleEl.textContent = reacting ? (settings && settings.char === 'shrimp' ? '🦐 간지러새우~' : '💕 헤헤') : bubbleText;
     bubbleEl.style.display = 'block';
     bubbleEl.style.left = x + 'px';
-    bubbleEl.style.bottom = (112 + lift) + 'px';
+    bubbleEl.style.bottom = (132 + lift) + 'px';
   } else {
     bubbleEl.style.display = 'none';
   }

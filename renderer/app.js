@@ -34,14 +34,13 @@ function raf(ts) {
     if (photo.style.display !== 'block') photo.style.display = 'block';
     const src = `assets/real-${settings ? settings.char : 'hamster'}.png`;
     if (photo.getAttribute('src') !== src) photo.setAttribute('src', src);
-    const breathe = calm ? 1 : 1 + Math.sin(ts / 1400) * 0.015;
-    const lx = calm ? 0 : lookX, ly = calm ? 0 : lookY;
-    photo.style.transform = `perspective(500px) rotateY(${(lx * 16).toFixed(1)}deg) rotateX(${(-ly * 12).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
+    const breathe = 1 + Math.sin(ts / 1400) * 0.015;
+    photo.style.transform = `perspective(500px) rotateY(${(lookX * 16).toFixed(1)}deg) rotateX(${(-lookY * 12).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
   } else {
     if (canvas.style.display === 'none') canvas.style.display = 'block';
     if (photo.style.display === 'block') photo.style.display = 'none';
     if (ctrl) {
-      ctrl.setState({ behavior: calm ? 'idle' : curBeh, dir: 1, lookX: calm ? 0 : lookX, lookY: calm ? 0 : lookY });
+      ctrl.setState({ behavior: calm ? 'idle' : curBeh, dir: 1, lookX, lookY }); // calm keeps gaze
       ctrl.frame(dt);
     }
   }
@@ -54,7 +53,9 @@ function wire() {
     b.addEventListener('click', () => window.timerAPI.setState({ shift: b.dataset.shift }));
   });
   $('charToggle').addEventListener('click', () => {
-    window.timerAPI.setState({ char: settings.char === 'hamster' ? 'rabbit' : 'hamster' });
+    const order = ['hamster', 'rabbit', 'shrimp'];
+    const next = order[(order.indexOf(settings.char) + 1) % order.length];
+    window.timerAPI.setState({ char: next });
   });
   $('ot30').addEventListener('click', () => addOvertime(30));
   $('ot60').addEventListener('click', () => addOvertime(60));
@@ -138,9 +139,10 @@ function tick() {
   const key = `${now.toDateString()}@${Math.floor(t.target.getTime() / 1000)}`;
   if (prevRemaining !== null && prevRemaining > 0 && t.remainingSec <= 0 && notifiedKey !== key) {
     notifiedKey = key;
+    const shrimp = settings.char === 'shrimp';
     window.timerAPI.notify({
-      title: '🎉 퇴근 시간이에요!',
-      body: '오늘도 고생 많으셨어요. 조심히 들어가세요!',
+      title: shrimp ? '🦐 퇴근이새우~!' : '🎉 퇴근 시간이에요!',
+      body: shrimp ? '오늘도 고생 많았새우~ 조심히 들어가새우!' : '오늘도 고생 많으셨어요. 조심히 들어가세요!',
     });
   }
   prevRemaining = t.remainingSec;

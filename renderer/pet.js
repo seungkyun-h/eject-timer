@@ -12,8 +12,7 @@ const vidEls = {
 };
 const VIDEO_SET = {
   hamster: { idle: 'assets/real-hamster-idle.mp4', walk: 'assets/real-hamster-walk.mp4', react: 'assets/real-hamster-react.mp4' },
-  // rabbit: cute video regen pending (Veo quota); falls back to real-rabbit.png for now
-  // shrimp: keeps the existing realistic still image (real-shrimp.png) — user prefers it over the animated one
+  // rabbit & shrimp: keep the existing realistic still images (real-rabbit.png / real-shrimp.png) — user prefers them over the animated versions
 };
 const setDisplay = (el, d) => { if (el.style.display !== d) el.style.display = d; };
 let ctrl = null;

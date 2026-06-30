@@ -1,0 +1,114 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --ink: #5b4a3f;
+  --muted: #a08c7d;
+  --accent: #ff8a5b;
+  --accent2: #ffd6a5;
+  --good: #6fcf86;
+}
+
+html, body {
+  background: transparent;
+  font-family: -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  cursor: default;
+  overflow: hidden;
+}
+
+.app {
+  margin: 10px;
+  border-radius: 22px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #fff7ef 0%, #ffe6cf 100%);
+  box-shadow: 0 14px 34px rgba(120, 80, 40, 0.30);
+  color: var(--ink);
+}
+
+/* draggable title bar */
+.bar {
+  -webkit-app-region: drag;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px 6px;
+}
+.bar-title { font-size: 13px; font-weight: 700; }
+.bar-btns { -webkit-app-region: no-drag; display: flex; gap: 4px; }
+.icon-btn {
+  border: none;
+  background: rgba(255, 255, 255, 0.6);
+  width: 24px; height: 24px;
+  border-radius: 8px;
+  font-size: 12px; line-height: 1;
+  cursor: pointer; color: var(--ink);
+}
+.icon-btn:hover { background: #fff; }
+.icon-btn.active { background: var(--accent); color: #fff; }
+
+/* shift selector */
+.shift-row { display: flex; gap: 6px; padding: 0 12px 4px; }
+.chip {
+  flex: 1; border: none; border-radius: 12px; padding: 6px 0;
+  cursor: pointer; background: rgba(255, 255, 255, 0.6);
+  color: var(--muted); font-weight: 800; font-size: 14px;
+  display: flex; flex-direction: column; align-items: center; line-height: 1.15;
+}
+.chip small { font-size: 9px; font-weight: 600; opacity: 0.85; }
+.chip.active { background: var(--accent); color: #fff; box-shadow: 0 4px 10px rgba(255, 138, 91, 0.4); }
+
+/* countdown */
+.clock-wrap { text-align: center; padding: 6px 0 2px; }
+.status-label { font-size: 12px; color: var(--muted); font-weight: 700; }
+.clock {
+  font-size: 40px; font-weight: 800; letter-spacing: 1px;
+  font-variant-numeric: tabular-nums; line-height: 1.1;
+}
+.clock.soon { color: var(--accent); }
+.clock.done { color: var(--good); }
+.subline { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* character scene */
+.scene { position: relative; height: 86px; margin: 8px 12px 2px; }
+.char {
+  position: absolute; bottom: 8px; left: 3%;
+  transform-origin: bottom center;
+  transition: left 0.9s linear;
+}
+.char canvas { width: 80px; height: 80px; display: block; filter: drop-shadow(0 3px 3px rgba(120, 80, 40, 0.25)); }
+.bubble {
+  position: absolute; bottom: 54px; left: 3%;
+  font-size: 16px; transition: left 0.9s linear;
+}
+.home { position: absolute; right: 2px; bottom: 12px; font-size: 30px; }
+.track {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  height: 8px; border-radius: 6px;
+  background: rgba(255, 255, 255, 0.55); overflow: hidden;
+}
+.track-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+  transition: width 0.9s linear;
+}
+
+@keyframes bob { from { transform: translateY(0) rotate(-3deg); } to { transform: translateY(-4px) rotate(3deg); } }
+@keyframes jump { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-16px); } }
+@keyframes sway { 0%, 100% { transform: rotate(-6deg); } 50% { transform: rotate(6deg); } }
+
+/* overtime panel */
+.ot { margin: 6px 12px; background: rgba(255, 255, 255, 0.55); border-radius: 14px; padding: 8px 10px; }
+.ot-head { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }
+.ot-now { color: var(--accent); }
+.ot-btns { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.ot-chip { border: none; border-radius: 9px; background: #fff; color: var(--ink); font-weight: 700; font-size: 11px; padding: 5px 8px; cursor: pointer; }
+.ot-chip:hover { background: var(--accent2); }
+.ot-chip.ghost { background: transparent; color: var(--muted); }
+.ot-input { display: inline-flex; gap: 4px; align-items: center; }
+.ot-input input { width: 46px; border: none; border-radius: 8px; padding: 4px 6px; font-size: 11px; text-align: center; background: #fff; color: var(--ink); }
+
+/* footer */
+.foot { display: flex; justify-content: center; padding: 6px 0 12px; }
+.char-toggle { border: none; border-radius: 12px; background: rgba(255, 255, 255, 0.65); padding: 6px 16px; font-size: 13px; font-weight: 700; cursor: pointer; color: var(--ink); }
+.char-toggle:hover { background: #fff; }

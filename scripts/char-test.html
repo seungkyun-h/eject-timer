@@ -1,0 +1,32 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  body{margin:0;background:#f6efe6;font-family:-apple-system,sans-serif;}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:12px;}
+  .cell{display:flex;flex-direction:column;align-items:center;}
+  canvas{width:150px;height:150px;}
+  span{font-weight:700;color:#5b4a3f;font-size:12px;}
+</style></head>
+<body>
+  <div class="grid" id="g"></div>
+  <script src="../renderer/character3d.js"></script>
+  <script>
+    const behaviors = ['idle', 'walk', 'happy', 'sleep', 'grab'];
+    const chars = ['hamster', 'rabbit'];
+    const g = document.getElementById('g');
+    const ctrls = [];
+    for (const ch of chars) {
+      for (const b of behaviors) {
+        const cell = document.createElement('div'); cell.className = 'cell';
+        const cv = document.createElement('canvas'); cv.width = 300; cv.height = 300;
+        const sp = document.createElement('span'); sp.textContent = ch + ' · ' + b;
+        cell.appendChild(cv); cell.appendChild(sp); g.appendChild(cell);
+        const c = window.Character3D.create(cv);
+        c.setCharacter(ch); c.setState({ behavior: b, dir: 1 });
+        ctrls.push(c);
+      }
+    }
+    let last = null;
+    function loop(ts) { if (last == null) last = ts; const dt = ts - last; last = ts; for (const c of ctrls) c.frame(dt); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  </script>
+</body></html>

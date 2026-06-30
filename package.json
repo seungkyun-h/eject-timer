@@ -1,0 +1,41 @@
+{
+  "name": "toigeun-timer",
+  "version": "1.0.0",
+  "description": "고정시차출근제 퇴근 타이머 — 귀여운 캐릭터와 함께 퇴근까지 카운트다운하는 Electron 데스크톱 앱",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "pet": "electron . --pet",
+    "dist": "electron-builder --dir",
+    "dist:dmg": "electron-builder",
+    "bake": "electron scripts/bake-3d.js",
+    "test": "node scripts/test-core.js"
+  },
+  "build": {
+    "appId": "com.toigeun.timer",
+    "productName": "퇴근타이머",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "package.json",
+      "node_modules/three/package.json",
+      "node_modules/three/build/**"
+    ],
+    "mac": {
+      "target": "dir",
+      "category": "public.app-category.productivity"
+    }
+  },
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.185.0"
+  },
+  "devDependencies": {
+    "electron": "^42.5.1",
+    "electron-builder": "^26.15.3"
+  }
+}

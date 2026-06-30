@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>퇴근 타이머</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="bar">
+      <span class="bar-title">🏠 퇴근 타이머</span>
+      <div class="bar-btns">
+        <button id="petBtn" class="icon-btn" title="데스크톱 펫 (캐릭터가 바탕화면을 돌아다녀요)">🐾</button>
+        <button id="onTopBtn" class="icon-btn" title="항상 위에 표시">📌</button>
+        <button id="hideBtn" class="icon-btn" title="트레이로 숨기기">✕</button>
+      </div>
+    </header>
+
+    <div class="shift-row" id="shifts">
+      <button class="chip" data-shift="A">A<small>~18:00</small></button>
+      <button class="chip" data-shift="B">B<small>~17:00</small></button>
+      <button class="chip" data-shift="C">C<small>~19:00</small></button>
+    </div>
+
+    <div class="clock-wrap">
+      <div class="status-label" id="statusLabel">퇴근까지</div>
+      <div class="clock" id="clock">--:--:--</div>
+      <div class="subline" id="subline">—</div>
+    </div>
+
+    <div class="scene" id="scene">
+      <div class="bubble" id="statusEmoji"></div>
+      <div class="char" id="char"><canvas id="charCanvas" width="150" height="150"></canvas></div>
+      <div class="home">🏡</div>
+      <div class="track"><div class="track-fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="ot">
+      <div class="ot-head">
+        <span>🌙 야근 (수기입력)</span>
+        <span class="ot-now" id="otDisplay">야근 없음</span>
+      </div>
+      <div class="ot-btns">
+        <button class="ot-chip" id="ot30">+30분</button>
+        <button class="ot-chip" id="ot60">+1시간</button>
+        <span class="ot-input">
+          <input id="otInput" type="number" inputmode="numeric" placeholder="분" min="1" />
+          <button class="ot-chip" id="otAdd">추가</button>
+        </span>
+        <button class="ot-chip ghost" id="otReset">초기화</button>
+      </div>
+    </div>
+
+    <footer class="foot">
+      <button id="charToggle" class="char-toggle">🐹 햄찌</button>
+    </footer>
+  </div>
+
+  <script src="bridge.js"></script>
+  <script src="timer-core.js"></script>
+  <script src="character3d.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

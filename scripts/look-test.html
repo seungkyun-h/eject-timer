@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  body{margin:0;background:#f6efe6;font-family:-apple-system,sans-serif;}
+  .grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:12px;}
+  .cell{display:flex;flex-direction:column;align-items:center;}
+  canvas{width:150px;height:150px;}
+  span{font-weight:700;color:#5b4a3f;font-size:12px;}
+</style></head>
+<body>
+  <div class="grid" id="g"></div>
+  <script src="../renderer/character3d.js"></script>
+  <script>
+    const looks = [
+      { x: -1, y: 0, l: 'look ←' }, { x: 1, y: 0, l: 'look →' },
+      { x: 0, y: -1, l: 'look ↑' }, { x: 0, y: 1, l: 'look ↓' }, { x: 0, y: 0, l: 'front' },
+    ];
+    const g = document.getElementById('g');
+    const ctrls = [];
+    for (const ch of ['hamster', 'rabbit']) {
+      for (const L of looks) {
+        const cell = document.createElement('div'); cell.className = 'cell';
+        const cv = document.createElement('canvas'); cv.width = 300; cv.height = 300;
+        const sp = document.createElement('span'); sp.textContent = ch + ' ' + L.l;
+        cell.appendChild(cv); cell.appendChild(sp); g.appendChild(cell);
+        const c = window.Character3D.create(cv);
+        c.setCharacter(ch); c.setState({ behavior: 'idle', dir: 1, lookX: L.x, lookY: L.y });
+        ctrls.push(c);
+      }
+    }
+    let last = null;
+    function loop(ts) { if (last == null) last = ts; const dt = ts - last; last = ts; for (const c of ctrls) c.frame(dt); requestAnimationFrame(loop); }
+    requestAnimationFrame(loop);
+  </script>
+</body></html>

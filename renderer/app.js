@@ -9,7 +9,7 @@ let curBeh = 'idle';
 let lookX = 0, lookY = 0;
 let vctrl = null;
 let curVideoChar = null;
-const VIDEO_SRC = { hamster: 'assets/real-hamster.mp4', rabbit: 'assets/real-rabbit.mp4' };
+const VIDEO_SRC = { hamster: 'assets/real-hamster-idle.mp4' };
 const setDisplay = (el, d) => { if (el.style.display !== d) el.style.display = d; };
 
 const $ = (id) => document.getElementById(id);

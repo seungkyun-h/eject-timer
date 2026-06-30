@@ -1,12 +1,15 @@
-<body style="margin:0;background:#2a8a90">
-  <video id=v autoplay muted loop playsinline src="file:///private/tmp/claude-501/-Users-seungkyun-Desktop-Development-hli-poc-dsp-dea-fe/be2aa159-9a59-42e7-91a4-39a0e8792c93/scratchpad/hamster.mp4" style="display:none"></video>
-  <canvas id=c width=420 height=420 style="width:420px;height:420px;display:block;margin:30px auto"></canvas>
+<body style="margin:0;background:#2a8a90;display:flex;justify-content:space-around;align-items:center">
+  <video id=r autoplay muted loop playsinline src="file:///Users/seungkyun/Desktop/Development/toigeun-timer/renderer/assets/real-rabbit-idle.mp4" style="display:none"></video>
+  <video id=s autoplay muted loop playsinline src="file:///Users/seungkyun/Desktop/Development/toigeun-timer/renderer/assets/real-shrimp-idle.mp4" style="display:none"></video>
+  <canvas id=cr width=248 height=280 style="width:200px;height:226px"></canvas>
+  <canvas id=cs width=248 height=280 style="width:200px;height:226px"></canvas>
   <script src="../renderer/video-pet.js"></script>
   <script>
-    const v=document.getElementById('v'), c=document.getElementById('c');
-    let ctrl=null;
-    function start(){ if(!ctrl){ try{ ctrl=window.VideoPet.create(c,v);}catch(e){document.title='ERR '+e;} } }
-    v.addEventListener('playing', start); v.addEventListener('loadeddata', start);
-    (function loop(){ if(ctrl) ctrl.frame(); requestAnimationFrame(loop); })();
+    let a=null,b=null;
+    function S(){ const r=document.getElementById('r'),s=document.getElementById('s');
+      if(!a&&r.readyState>=2){ a=window.VideoPet.create(document.getElementById('cr'),r); }
+      if(!b&&s.readyState>=2){ b=window.VideoPet.create(document.getElementById('cs'),s); } }
+    setInterval(S,200);
+    (function loop(){ if(a)a.frame(); if(b)b.frame(); requestAnimationFrame(loop); })();
   </script>
 </body>

@@ -10,13 +10,25 @@ const BASE = 'https://generativelanguage.googleapis.com/v1beta/';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function main() {
-  let res = await fetch(BASE + 'models/' + model + ':predictLongRunning', {
-    method: 'POST',
-    headers: { 'content-type': 'application/json', 'x-goog-api-key': KEY },
-    body: JSON.stringify({ instances: [{ prompt }], parameters: { aspectRatio: '9:16', personGeneration: 'allow_all' } }),
-  });
-  let txt = await res.text();
-  if (!res.ok) { console.error('start HTTP', res.status, txt.slice(0, 700)); process.exit(1); }
+  const inst = { prompt };
+  if (process.env.IMAGE) {
+    const ib = fs.readFileSync(process.env.IMAGE);
+    inst.image = { bytesBase64Encoded: ib.toString('base64'), mimeType: process.env.IMAGE.endsWith('.jpg') ? 'image/jpeg' : 'image/png' };
+  }
+  const startBody = JSON.stringify({ instances: [inst], parameters: { aspectRatio: '9:16', personGeneration: process.env.IMAGE ? 'allow_adult' : 'allow_all' } });
+  let res, txt;
+  for (let attempt = 0; attempt < 10; attempt++) {
+    res = await fetch(BASE + 'models/' + model + ':predictLongRunning', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-goog-api-key': KEY },
+      body: startBody,
+    });
+    txt = await res.text();
+    if (res.ok) break;
+    if (res.status === 429 || res.status >= 500) { console.log('start', res.status, '- backoff 25s (attempt ' + (attempt + 1) + ')'); await sleep(25000); continue; }
+    console.error('start HTTP', res.status, txt.slice(0, 700)); process.exit(1);
+  }
+  if (!res.ok) { console.error('start failed after retries', res.status); process.exit(1); }
   const op = JSON.parse(txt).name;
   console.log('operation:', op);
 

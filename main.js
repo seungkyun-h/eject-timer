@@ -12,7 +12,7 @@ let settings = null;
 // settings store (canonical state lives in main process, persisted to disk)
 // ---------------------------------------------------------------------------
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
-const DEFAULTS = { shift: 'A', char: 'hamster', onTop: true, pet: false, overtime: { date: '', minutes: 0 } };
+const DEFAULTS = { shift: 'A', char: 'hamster', onTop: true, pet: false, calm: false, overtime: { date: '', minutes: 0 } };
 
 function todayStr() {
   const d = new Date();
@@ -175,6 +175,10 @@ function rebuildTrayMenu() {
     {
       label: settings.pet ? '🐾 데스크톱 펫 끄기' : '🐾 데스크톱 펫 켜기',
       click: () => updateState({ pet: !settings.pet }),
+    },
+    {
+      label: settings.calm ? '🧘 가만히 모드 끄기' : '🧘 가만히 모드 켜기',
+      click: () => updateState({ calm: !settings.calm }),
     },
     { type: 'separator' },
     { label: '종료', click: () => { isQuitting = true; app.quit(); } },

@@ -144,14 +144,17 @@ function loop(ts) {
   const reacting = ts < reactUntil;
 
   // ----- choose behavior for the live 3D character -----
+  const calm = settings && settings.calm;
   let behavior = 'idle';
   if (dragging) behavior = 'grab';
-  else if (reacting || phase === 'celebrate') behavior = 'happy';
+  else if (reacting) behavior = 'happy';
+  else if (calm) behavior = 'idle';                 // sit quietly, no autonomous motion
+  else if (phase === 'celebrate') behavior = 'happy';
   else if (phase === 'soon' || beh === 'walk') behavior = 'walk';
   else if (phase === 'overtime' || beh === 'sleep') behavior = 'sleep';
   if (ctrl) {
     ctrl.setCharacter(settings ? settings.char : 'hamster');
-    ctrl.setState({ behavior, dir, lookX, lookY });
+    ctrl.setState({ behavior, dir, lookX: calm ? 0 : lookX, lookY: calm ? 0 : lookY });
     ctrl.frame(dt * 1000);
   }
 
@@ -165,6 +168,8 @@ function loop(ts) {
     if (petY <= 0) { petY = 0; vy = 0; }
   } else if (reacting) {
     hopY = Math.abs(Math.sin(ts / 110)) * 14;
+  } else if (calm) {
+    hopY = 0;                                  // stay put, only gentle 3D breathing
   } else if (phase === 'celebrate') {
     hopY = Math.abs(Math.sin(ts / 140)) * 26;
   } else if (phase === 'soon') {

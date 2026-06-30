@@ -27,7 +27,8 @@ function raf(ts) {
   const dt = ts - lastRaf;
   lastRaf = ts;
   if (ctrl) {
-    ctrl.setState({ behavior: curBeh, dir: 1, lookX, lookY });
+    const calm = settings && settings.calm;
+    ctrl.setState({ behavior: calm ? 'idle' : curBeh, dir: 1, lookX: calm ? 0 : lookX, lookY: calm ? 0 : lookY });
     ctrl.frame(dt);
   }
   lookX *= 0.94; lookY *= 0.94; // ease back to front when not hovering the widget
@@ -49,6 +50,7 @@ function wire() {
   });
   $('otReset').addEventListener('click', () => window.timerAPI.setState({ overtime: { minutes: 0 } }));
   $('petBtn').addEventListener('click', () => window.timerAPI.setState({ pet: !settings.pet }));
+  $('calmBtn').addEventListener('click', () => window.timerAPI.setState({ calm: !settings.calm }));
   $('onTopBtn').addEventListener('click', () => window.timerAPI.setState({ onTop: !settings.onTop }));
   $('hideBtn').addEventListener('click', () => window.timerAPI.hideWindow());
   window.addEventListener('mousemove', (e) => {
@@ -72,6 +74,7 @@ function syncControls() {
   const c = CHARS[settings.char];
   $('charToggle').textContent = `${c.emoji} ${c.name}`;
   $('petBtn').classList.toggle('active', !!settings.pet);
+  $('calmBtn').classList.toggle('active', !!settings.calm);
   $('onTopBtn').classList.toggle('active', !!settings.onTop);
   const ot = currentOt();
   $('otDisplay').textContent = ot > 0 ? `현재 +${ot}분` : '야근 없음';

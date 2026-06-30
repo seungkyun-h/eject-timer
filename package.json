@@ -8,6 +8,8 @@
     "pet": "electron . --pet",
     "dist": "electron-builder --dir",
     "dist:dmg": "electron-builder",
+    "resign": "bash scripts/resign-mac.sh",
+    "dist:local": "electron-builder --dir && bash scripts/resign-mac.sh",
     "bake": "electron scripts/bake-3d.js",
     "test": "node scripts/test-core.js"
   },

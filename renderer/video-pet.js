@@ -21,7 +21,7 @@
         mapA: { value: first },
         mapB: { value: first },
         blend: { value: 1 },
-        crop: { value: new THREE.Vector4(opts.cropX ?? 0.18, opts.cropY ?? 0.24, opts.cropW ?? 0.64, opts.cropH ?? 0.54) },
+        crop: { value: new THREE.Vector4(opts.cropX ?? 0.20, opts.cropY ?? 0.30, opts.cropW ?? 0.60, opts.cropH ?? 0.46) },
         thr: { value: opts.thr ?? 0.4 },
         soft: { value: opts.soft ?? 0.06 },
       },
@@ -40,12 +40,13 @@
         'void main(){',
         '  vec2 uv = vec2(crop.x + vUv.x*crop.z, crop.y + vUv.y*crop.w);',
         '  vec4 c = mix(keyed(mapB, uv), keyed(mapA, uv), blend);',
-        '  float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));',          // remove the grey floor shadow near the bottom
+        '  float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));',   // remove the grey studio-floor shadow
         '  float mx = max(c.r, max(c.g, c.b)); float mn = min(c.r, min(c.g, c.b));',
         '  float sat = (mx - mn) / (mx + 0.001);',
-        '  float nearBottom = 1.0 - smoothstep(0.14, 0.52, vUv.y);',
-        '  float isFloor = (1.0 - smoothstep(0.08, 0.20, sat)) * (1.0 - smoothstep(0.55, 0.72, lum));',  // grey (desaturated) & not bright = floor; warm fur & bright belly kept
-        '  c.a *= 1.0 - isFloor * nearBottom;',
+        '  float region = max(smoothstep(0.20, 0.40, abs(vUv.x - 0.5)), 1.0 - smoothstep(0.16, 0.48, vUv.y));',  // sides + bottom (where the floor shadow lives)
+        '  float grey = 1.0 - smoothstep(0.07, 0.17, sat);',     // desaturated grey
+        '  float bright = smoothstep(0.78, 0.90, lum);',         // protect the near-white centered belly
+        '  c.a *= 1.0 - grey * region * (1.0 - bright);',
         '  if (c.a < 0.01) discard;',
         '  gl_FragColor = c;',
         '}',

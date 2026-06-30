@@ -2,6 +2,8 @@ const { fmtShort, computeTimer } = window.TimerCore;
 
 const petEl = document.getElementById('pet');
 const bubbleEl = document.getElementById('bubble');
+const canvasEl = document.getElementById('petCanvas');
+const photoEl = document.getElementById('petPhoto');
 let ctrl = null;
 
 let settings = null;
@@ -142,23 +144,35 @@ function loop(ts) {
   lastTs = ts;
 
   const reacting = ts < reactUntil;
-
-  // ----- choose behavior for the live 3D character -----
   const calm = settings && settings.calm;
-  let behavior = 'idle';
-  if (dragging) behavior = 'grab';
-  else if (reacting) behavior = 'happy';
-  else if (calm) behavior = 'idle';                 // sit quietly, no autonomous motion
-  else if (phase === 'celebrate') behavior = 'happy';
-  else if (phase === 'soon' || beh === 'walk') behavior = 'walk';
-  else if (phase === 'overtime' || beh === 'sleep') behavior = 'sleep';
-  if (ctrl) {
+  const realistic = settings && settings.realistic;
+
+  // ----- mode: live 3D canvas vs photoreal image -----
+  if (realistic) {
+    if (canvasEl.style.display !== 'none') canvasEl.style.display = 'none';
+    if (photoEl.style.display !== 'block') photoEl.style.display = 'block';
+    const src = `assets/real-${settings ? settings.char : 'hamster'}.png`;
+    if (photoEl.getAttribute('src') !== src) photoEl.setAttribute('src', src);
+  } else {
+    if (canvasEl.style.display === 'none') canvasEl.style.display = 'block';
+    if (photoEl.style.display === 'block') photoEl.style.display = 'none';
+  }
+
+  // ----- live 3D character (skipped in realistic mode) -----
+  if (!realistic && ctrl) {
+    let behavior = 'idle';
+    if (dragging) behavior = 'grab';
+    else if (reacting) behavior = 'happy';
+    else if (calm) behavior = 'idle';
+    else if (phase === 'celebrate') behavior = 'happy';
+    else if (phase === 'soon' || beh === 'walk') behavior = 'walk';
+    else if (phase === 'overtime' || beh === 'sleep') behavior = 'sleep';
     ctrl.setCharacter(settings ? settings.char : 'hamster');
     ctrl.setState({ behavior, dir, lookX: calm ? 0 : lookX, lookY: calm ? 0 : lookY });
     ctrl.frame(dt * 1000);
   }
 
-  // ----- motion -----
+  // ----- motion (realistic pet stays put; only drag / pat / celebrate hops) -----
   let hopY = 0;
   if (dragging) {
     // mouse-driven; nothing else
@@ -168,6 +182,8 @@ function loop(ts) {
     if (petY <= 0) { petY = 0; vy = 0; }
   } else if (reacting) {
     hopY = Math.abs(Math.sin(ts / 110)) * 14;
+  } else if (realistic) {
+    hopY = (!calm && phase === 'celebrate') ? Math.abs(Math.sin(ts / 160)) * 16 : 0;
   } else if (calm) {
     hopY = 0;                                  // stay put, only gentle 3D breathing
   } else if (phase === 'celebrate') {
@@ -189,13 +205,13 @@ function loop(ts) {
     if (ts >= behUntil) { beh = 'walk'; pickTarget(); }
   }
 
-  // ----- position + gentle lean/swing (the 3D model handles its own motion) -----
+  // ----- position + lean/swing -----
   const lift = petY + hopY;
   const vx = x - lastX;
   lastX = x;
   if (dragging) swing += (clamp(-vx * 1.2, -18, 18) - swing) * 0.22;
   else swing *= 0.86;
-  const leanTarget = dragging ? 0 : clamp(vx * 0.4, -5, 5);
+  const leanTarget = (dragging || realistic) ? 0 : clamp(vx * 0.4, -5, 5);
   lean += (leanTarget - lean) * 0.18;
 
   petEl.style.left = x + 'px';
@@ -203,6 +219,14 @@ function loop(ts) {
   petEl.style.transformOrigin = dragging ? '50% 14%' : '50% 92%';
   petEl.style.transform =
     `translate(-50%, ${-lift}px) rotate(${(lean + swing).toFixed(2)}deg)`;
+
+  // ----- photoreal parallax: the photo tilts toward the cursor -----
+  if (realistic) {
+    const breathe = calm ? 1 : 1 + Math.sin(ts / 1400) * 0.015;
+    const lx = calm ? 0 : lookX, ly = calm ? 0 : lookY;
+    photoEl.style.transform =
+      `perspective(600px) rotateY(${(lx * 18).toFixed(1)}deg) rotateX(${(-ly * 14).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
+  }
 
   const showText = (overPet && !dragging) || reacting;
   if (showText) {

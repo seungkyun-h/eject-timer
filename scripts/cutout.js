@@ -42,9 +42,12 @@ app.whenReady().then(() => {
     stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1);
   }
 
-  fs.writeFileSync(out, nativeImage.createFromBitmap(buf, { width, height }).toPNG());
+  let outImg = nativeImage.createFromBitmap(buf, { width, height });
+  const size = Number(process.argv[6] || 0);
+  if (size) outImg = outImg.resize({ width: size, height: size, quality: 'best' });
+  fs.writeFileSync(out, outImg.toPNG());
   let cut = 0;
   for (let p = 0; p < width * height; p++) if (buf[p * 4 + 3] === 0) cut++;
-  console.log('cutout', width + 'x' + height, 'bg=' + [br, bg, bb].map(Math.round).join(','), 'transparent', cut);
+  console.log('cutout', width + 'x' + height, 'bg=' + [br, bg, bb].map(Math.round).join(','), 'transparent', cut, size ? '-> ' + size : '');
   app.quit();
 });

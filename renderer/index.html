@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file: data: blob:;" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>퇴근 타이머</title>
   <link rel="stylesheet" href="style.css" />
@@ -14,6 +14,7 @@
       <div class="bar-btns">
         <button id="petBtn" class="icon-btn" title="데스크톱 펫 (캐릭터가 바탕화면을 돌아다녀요)">🐾</button>
         <button id="calmBtn" class="icon-btn" title="가만히 있기 (차분 모드 — 안 돌아다니고 조용히)">🧘</button>
+        <button id="photoBtn" class="icon-btn" title="실사 모드 (진짜 햄스터 사진 ↔ 3D)">📷</button>
         <button id="onTopBtn" class="icon-btn" title="항상 위에 표시">📌</button>
         <button id="hideBtn" class="icon-btn" title="트레이로 숨기기">✕</button>
       </div>
@@ -33,7 +34,7 @@
 
     <div class="scene" id="scene">
       <div class="bubble" id="statusEmoji"></div>
-      <div class="char" id="char"><canvas id="charCanvas" width="150" height="150"></canvas></div>
+      <div class="char" id="char"><canvas id="charCanvas" width="150" height="150"></canvas><img id="charPhoto" class="photo" alt="" draggable="false" /></div>
       <div class="home">🏡</div>
       <div class="track"><div class="track-fill" id="progressFill"></div></div>
     </div>

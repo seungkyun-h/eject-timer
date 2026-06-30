@@ -12,7 +12,7 @@ let settings = null;
 // settings store (canonical state lives in main process, persisted to disk)
 // ---------------------------------------------------------------------------
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
-const DEFAULTS = { shift: 'A', char: 'hamster', onTop: true, pet: false, calm: false, overtime: { date: '', minutes: 0 } };
+const DEFAULTS = { shift: 'A', char: 'hamster', onTop: true, pet: false, calm: false, realistic: false, overtime: { date: '', minutes: 0 } };
 
 function todayStr() {
   const d = new Date();
@@ -146,6 +146,14 @@ function createPet() {
     petWin.webContents.on('console-message', (e, level, message) => console.log('[pet]', message ?? (e && e.message)));
     console.log('[pet-bounds]', JSON.stringify(petWin.getBounds()));
   }
+  if (process.env.TT_SHOT_PET) {
+    petWin.webContents.once('did-finish-load', () => {
+      setTimeout(async () => {
+        try { fs.writeFileSync(process.env.TT_SHOT_PET, (await petWin.webContents.capturePage()).toPNG()); } catch (e) { console.error(e); }
+        isQuitting = true; app.quit();
+      }, 1600);
+    });
+  }
   petWin.on('closed', () => { petWin = null; });
 }
 
@@ -179,6 +187,10 @@ function rebuildTrayMenu() {
     {
       label: settings.calm ? '🧘 가만히 모드 끄기' : '🧘 가만히 모드 켜기',
       click: () => updateState({ calm: !settings.calm }),
+    },
+    {
+      label: settings.realistic ? '📷 실사 모드 끄기 (3D로)' : '📷 실사 모드 켜기',
+      click: () => updateState({ realistic: !settings.realistic }),
     },
     { type: 'separator' },
     { label: '종료', click: () => { isQuitting = true; app.quit(); } },

@@ -26,10 +26,24 @@ function raf(ts) {
   if (lastRaf == null) lastRaf = ts;
   const dt = ts - lastRaf;
   lastRaf = ts;
-  if (ctrl) {
-    const calm = settings && settings.calm;
-    ctrl.setState({ behavior: calm ? 'idle' : curBeh, dir: 1, lookX: calm ? 0 : lookX, lookY: calm ? 0 : lookY });
-    ctrl.frame(dt);
+  const calm = settings && settings.calm;
+  const realistic = settings && settings.realistic;
+  const canvas = $('charCanvas'), photo = $('charPhoto');
+  if (realistic) {
+    if (canvas.style.display !== 'none') canvas.style.display = 'none';
+    if (photo.style.display !== 'block') photo.style.display = 'block';
+    const src = `assets/real-${settings ? settings.char : 'hamster'}.png`;
+    if (photo.getAttribute('src') !== src) photo.setAttribute('src', src);
+    const breathe = calm ? 1 : 1 + Math.sin(ts / 1400) * 0.015;
+    const lx = calm ? 0 : lookX, ly = calm ? 0 : lookY;
+    photo.style.transform = `perspective(500px) rotateY(${(lx * 16).toFixed(1)}deg) rotateX(${(-ly * 12).toFixed(1)}deg) scale(${breathe.toFixed(3)})`;
+  } else {
+    if (canvas.style.display === 'none') canvas.style.display = 'block';
+    if (photo.style.display === 'block') photo.style.display = 'none';
+    if (ctrl) {
+      ctrl.setState({ behavior: calm ? 'idle' : curBeh, dir: 1, lookX: calm ? 0 : lookX, lookY: calm ? 0 : lookY });
+      ctrl.frame(dt);
+    }
   }
   lookX *= 0.94; lookY *= 0.94; // ease back to front when not hovering the widget
   requestAnimationFrame(raf);
@@ -51,6 +65,7 @@ function wire() {
   $('otReset').addEventListener('click', () => window.timerAPI.setState({ overtime: { minutes: 0 } }));
   $('petBtn').addEventListener('click', () => window.timerAPI.setState({ pet: !settings.pet }));
   $('calmBtn').addEventListener('click', () => window.timerAPI.setState({ calm: !settings.calm }));
+  $('photoBtn').addEventListener('click', () => window.timerAPI.setState({ realistic: !settings.realistic }));
   $('onTopBtn').addEventListener('click', () => window.timerAPI.setState({ onTop: !settings.onTop }));
   $('hideBtn').addEventListener('click', () => window.timerAPI.hideWindow());
   window.addEventListener('mousemove', (e) => {
@@ -75,6 +90,7 @@ function syncControls() {
   $('charToggle').textContent = `${c.emoji} ${c.name}`;
   $('petBtn').classList.toggle('active', !!settings.pet);
   $('calmBtn').classList.toggle('active', !!settings.calm);
+  $('photoBtn').classList.toggle('active', !!settings.realistic);
   $('onTopBtn').classList.toggle('active', !!settings.onTop);
   const ot = currentOt();
   $('otDisplay').textContent = ot > 0 ? `현재 +${ot}분` : '야근 없음';

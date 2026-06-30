@@ -27,6 +27,14 @@ html, body {
   display: block;
 }
 
+.pet .photo {
+  display: none;
+  width: 124px;
+  height: 124px;
+  object-fit: contain;
+  transform-origin: 50% 60%;
+}
+
 .bubble {
   position: absolute;
   bottom: 64px;

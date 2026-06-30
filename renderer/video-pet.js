@@ -40,6 +40,12 @@
         'void main(){',
         '  vec2 uv = vec2(crop.x + vUv.x*crop.z, crop.y + vUv.y*crop.w);',
         '  vec4 c = mix(keyed(mapB, uv), keyed(mapA, uv), blend);',
+        '  float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));',          // remove the grey floor shadow near the bottom
+        '  float mx = max(c.r, max(c.g, c.b)); float mn = min(c.r, min(c.g, c.b));',
+        '  float sat = (mx - mn) / (mx + 0.001);',
+        '  float nearBottom = 1.0 - smoothstep(0.14, 0.52, vUv.y);',
+        '  float isFloor = (1.0 - smoothstep(0.08, 0.20, sat)) * (1.0 - smoothstep(0.55, 0.72, lum));',  // grey (desaturated) & not bright = floor; warm fur & bright belly kept
+        '  c.a *= 1.0 - isFloor * nearBottom;',
         '  if (c.a < 0.01) discard;',
         '  gl_FragColor = c;',
         '}',

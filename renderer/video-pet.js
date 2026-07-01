@@ -38,7 +38,7 @@
         mapA: { value: first },
         mapB: { value: first },
         blend: { value: 1 },
-        crop: { value: new THREE.Vector4(opts.cropX ?? 0.10, opts.cropY ?? 0.14, opts.cropW ?? 0.80, opts.cropH ?? 0.51) },
+        crop: { value: new THREE.Vector4(opts.cropX ?? 0.14, opts.cropY ?? 0.20, opts.cropW ?? 0.71, opts.cropH ?? 0.45) },
         thr: { value: opts.thr ?? 0.4 },
         soft: { value: opts.soft ?? 0.06 },
       },
@@ -60,21 +60,25 @@
         '  float lum = dot(c.rgb, vec3(0.299, 0.587, 0.114));',
         '  float mx = max(c.r, max(c.g, c.b)); float mn = min(c.r, min(c.g, c.b));',
         '  float sat = (mx - mn) / (mx + 0.001);',
-        // the contact shadow desaturates the green floor into grey that the colour key misses.
-        // in the lower band keep only clear fur (warm: red>green, or bright cream belly); erase the rest.
-        '  float warm = step(c.g + 0.02, c.r);',                 // orange / tan / pink fur
-        '  float bright = smoothstep(0.70, 0.86, lum);',         // cream belly
-        '  float fur = max(warm, bright);',
-        '  float bottom = 1.0 - smoothstep(0.0, 0.16, vUv.y);',  // displayed bottom ~16% (feet + floor)
-        '  c.a *= 1.0 - bottom * (1.0 - fur);',
-        // the lower body is a narrow centred column; anything outside it down low is floor / contact-shadow.
-        '  float side = smoothstep(0.20, 0.30, abs(vUv.x - 0.5));',
-        '  float low = 1.0 - smoothstep(0.30, 0.52, vUv.y);',
+        '  float gf = c.g / (c.r + c.g + c.b + 0.001);',
+        '  float warm = step(c.g, c.r);',                        // red >= green
+        // (A) the baked under-belly contact-shadow is a greenish-grey bounce (gf~0.36, r~=g) that the
+        //     main colour key misses; all warm fur is gf<=0.32. In the lower-centre erase mid-bright
+        //     greenish pixels — protecting warm fur (low gf), the bright belly (high lum) and the dark feet (low lum).
+        '  float greenish = smoothstep(0.328, 0.352, gf);',      // gf>~0.33 = floor (warm fur is <=0.32)
+        '  float notDark = smoothstep(0.18, 0.26, lum) * (1.0 - smoothstep(0.72, 0.82, lum));', // skip dark feet + bright belly
+        '  float lowMid = (1.0 - smoothstep(0.12, 0.54, vUv.y)) * (1.0 - smoothstep(0.34, 0.50, abs(vUv.x - 0.5)));',
+        '  c.a *= 1.0 - greenish * notDark * lowMid;',
+        // (B) very bottom band: keep only vivid warm fur (feet) or the bright belly; erase warm-grey floor.
+        '  float satHi = step(0.24, sat);',
+        '  float bright = smoothstep(0.66, 0.80, lum);',
+        '  float keep = max(warm * satHi, bright);',
+        '  float bottom = 1.0 - smoothstep(0.0, 0.18, vUv.y);',
+        '  c.a *= 1.0 - bottom * (1.0 - keep);',
+        // (C) the lower body is a narrow centred column; anything outside it down low is floor.
+        '  float side = smoothstep(0.18, 0.30, abs(vUv.x - 0.5));',
+        '  float low = 1.0 - smoothstep(0.28, 0.52, vUv.y);',
         '  c.a *= 1.0 - low * side;',
-        // safety net: residual desaturated grey low-centre (keeps warm feet + bright belly)
-        '  float grey = 1.0 - smoothstep(0.06, 0.16, sat);',
-        '  float lowC = 1.0 - smoothstep(0.10, 0.40, vUv.y);',
-        '  c.a *= 1.0 - grey * lowC * (1.0 - fur);',
         '  if (c.a < 0.01) discard;',
         '  gl_FragColor = c;',
         '}',

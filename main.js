@@ -12,7 +12,8 @@ let settings = null;
 // settings store (canonical state lives in main process, persisted to disk)
 // ---------------------------------------------------------------------------
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
-const DEFAULTS = { shift: 'A', char: 'hamster', onTop: true, pet: false, calm: false, realistic: false, display: null, overtime: { date: '', minutes: 0 } };
+const DEFAULTS = { shift: 'A', char: 'hamster', onTop: true, pet: false, calm: false, realistic: false, display: null, petCount: 1, overtime: { date: '', minutes: 0 } };
+const MAX_PETS = 3;
 
 function todayStr() {
   const d = new Date();
@@ -49,12 +50,14 @@ function updateState(partial) {
   const incomingOt = partial.overtime;
   settings = { ...settings, ...partial };
   if (incomingOt) settings.overtime = { date: todayStr(), minutes: Math.max(0, incomingOt.minutes ?? 0) };
+  if (partial.petCount !== undefined) settings.petCount = Math.max(1, Math.min(MAX_PETS, partial.petCount | 0));
   saveSettings();
 
   if (partial.onTop !== undefined && widgetWin && !widgetWin.isDestroyed()) {
     widgetWin.setAlwaysOnTop(settings.onTop, 'floating');
   }
   if (partial.display !== undefined) { fitPetToDisplays(); rebuildTrayMenu(); }
+  if (partial.petCount !== undefined) rebuildTrayMenu();
   if (settings.pet !== prevPet) applyPet();
   broadcast();
   return settings;
@@ -206,6 +209,15 @@ function rebuildTrayMenu() {
       label: settings.pet ? '🐾 데스크톱 펫 끄기' : '🐾 데스크톱 펫 켜기',
       click: () => updateState({ pet: !settings.pet }),
     },
+    ...(settings.pet ? [{
+      label: '🐹 마리 수',
+      submenu: Array.from({ length: MAX_PETS }, (_, k) => k + 1).map((n) => ({
+        label: `${n}마리`,
+        type: 'radio',
+        checked: (settings.petCount || 1) === n,
+        click: () => updateState({ petCount: n }),
+      })),
+    }] : []),
     ...(multiDisplay ? [{ label: '🖥 펫 위치 모니터', submenu: displayMenuItems() }] : []),
     {
       label: settings.calm ? '🧘 가만히 모드 끄기' : '🧘 가만히 모드 켜기',

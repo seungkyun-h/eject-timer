@@ -1,22 +1,28 @@
 const { fmtShort, computeTimer } = window.TimerCore;
 
 const stage = document.getElementById('stage');
-// Behaviour videos are SHARED by every pet (one decode set regardless of pet count).
+// idle/walk/react are SHARED by every pet (one decode set). nap is PER-PET (each pet naps
+// on its own schedule, so it needs its own playhead).
 const vidEls = {
   idle: document.getElementById('petVideoIdle'),
   walk: document.getElementById('petVideoWalk'),
   react: document.getElementById('petVideoReact'),
 };
 const VIDEO_SET = {
-  hamster: { idle: 'assets/real-hamster-idle.mp4', walk: 'assets/real-hamster-walk.mp4', react: 'assets/real-hamster-react.mp4' },
-  // rabbit & shrimp: keep the existing realistic still images (real-rabbit.png / real-shrimp.png)
+  hamster: {
+    idle: 'assets/real-hamster-idle.mp4',
+    walk: 'assets/real-hamster-walk.mp4',
+    react: 'assets/real-hamster-react.mp4',
+    nap: 'assets/real-hamster-nap.mp4',
+  },
+  // rabbit & shrimp: realistic still images (real-rabbit.png / real-shrimp.png)
 };
 const setDisplay = (el, d) => { if (el.style.display !== d) el.style.display = d; };
 
 let settings = null;
 let phase = 'work';
 let bubbleText = '';
-let curVideoChar = null;   // which char's srcs are loaded into the shared video elements
+let curVideoChar = null;   // which char's srcs are loaded into the video elements
 let lastTs = null;
 
 const MAX_PETS = 3;
@@ -25,6 +31,11 @@ const SPEED_FAST = 88;   // excited pace near clock-out
 const GRAVITY = 2600;
 const MARGIN = 80;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// nap clip phase timestamps (seconds): stand→sit (0..T1), doze loop [T1,T2], wake→stand (T2..DUR)
+const NAP_T1 = 2.0;
+const NAP_T2 = 5.6;
+const NAP_DUR = 7.8;
 
 let pets = [];
 
@@ -37,30 +48,48 @@ function makePet(i) {
   const vidC = document.createElement('canvas'); vidC.className = 'vid'; vidC.width = 248; vidC.height = 280;
   el.append(c3d, photo, vidC);
   const bubble = document.createElement('div'); bubble.className = 'bubble';
-  stage.append(el, bubble);
+  const napVid = document.createElement('video'); napVid.muted = true; napVid.playsInline = true; napVid.style.display = 'none';
+  stage.append(el, bubble, napVid);
 
   const startX = MARGIN + (window.innerWidth - MARGIN * 2) * (i + 0.5) / MAX_PETS;
-  const p = {
-    el, bubble, c3d, photo, vidC,
+  return {
+    el, bubble, c3d, photo, vidC, napVid,
     ctrl: window.Character3D.create(c3d),
     vctrl: null,
     active: false,
     x: startX, targetX: startX, dir: i % 2 ? -1 : 1,
     beh: 'walk', behUntil: 0,
+    napPhase: null, dozeUntil: 0,
     petY: 0, vy: 0,
     overPet: false, dragging: false, dragMoved: false, dragOffX: 0, dragGrab: 0, downX: 0, downY: 0,
     reactUntil: 0, swing: 0, lastX: startX, lookX: 0, lookY: 0, lean: 0,
   };
-  return p;
 }
 
 function pickTarget(p) { p.targetX = MARGIN + Math.random() * (window.innerWidth - MARGIN * 2); }
 
+// Doze-heavy: mostly nap / stand, rarely roam (it's for a work desk — too much motion is distracting).
 function nextBehavior(p, ts) {
   const r = Math.random();
-  if (r < 0.55) { p.beh = 'walk'; pickTarget(p); }
-  else if (r < 0.82) { p.beh = 'idle'; p.behUntil = ts + 1000 + Math.random() * 2200; if (Math.random() < 0.5) p.dir *= -1; }
-  else { p.beh = 'sleep'; p.behUntil = ts + 4000 + Math.random() * 5000; }
+  if (r < 0.60) startNap(p, ts);                                                    // 60% nap
+  else if (r < 0.85) { p.beh = 'idle'; p.behUntil = ts + 2000 + Math.random() * 3500; if (Math.random() < 0.5) p.dir *= -1; }  // 25% stand
+  else { p.beh = 'walk'; pickTarget(p); }                                           // 15% short roam
+}
+
+function startNap(p, ts) {
+  p.beh = 'sleep';
+  p.napPhase = 'in';
+  p.dozeUntil = ts + 12000 + Math.random() * 20000;   // doze 12–32s (long, cozy)
+  if (p.napVid && p.napVid.getAttribute('src')) {
+    try { p.napVid.currentTime = 0; p.napVid.play().catch(() => {}); } catch (e) { /* ignore */ }
+  }
+}
+
+function endNap(p, next) {
+  p.napPhase = null;
+  p.beh = next || 'idle';
+  if (next === 'walk') pickTarget(p); else p.behUntil = (lastTs || 0) + 1500 + Math.random() * 2500;
+  try { p.napVid.pause(); } catch (e) { /* ignore */ }
 }
 
 function walkMove(p, dt, speed) {
@@ -74,6 +103,7 @@ function walkMove(p, dt, speed) {
 function pat(p) {
   p.reactUntil = (lastTs || 0) + 2200;
   p.vy = 520;
+  if (p.beh === 'sleep') { p.napPhase = null; try { p.napVid.pause(); } catch (e) {} p.beh = 'idle'; }
   if (vidEls.react && vidEls.react.getAttribute('src')) {
     try { vidEls.react.currentTime = 0; vidEls.react.play().catch(() => {}); } catch (e) { /* ignore */ }
   }
@@ -84,13 +114,13 @@ function applyCount(n) {
   const count = clamp(n || 1, 1, MAX_PETS);
   pets.forEach((p, i) => {
     const on = i < count;
-    if (on && !p.active) {   // just activated → drop it in spread out and roaming
+    if (on && !p.active) {
       p.x = MARGIN + (window.innerWidth - MARGIN * 2) * (i + 0.5) / MAX_PETS;
-      p.lastX = p.x; p.petY = 0; p.vy = 0; p.beh = 'walk'; pickTarget(p);
+      p.lastX = p.x; p.petY = 0; p.vy = 0; p.beh = 'walk'; p.napPhase = null; pickTarget(p);
     }
     p.active = on;
     setDisplay(p.el, on ? 'block' : 'none');
-    if (!on) setDisplay(p.bubble, 'none');
+    if (!on) { setDisplay(p.bubble, 'none'); try { p.napVid.pause(); } catch (e) {} }
   });
 }
 
@@ -113,7 +143,6 @@ function setupMouse() {
     let dragged = null;
     for (const p of pets) {
       if (!p.active) continue;
-      // head/eyes track the cursor
       const charCenterY = window.innerHeight - (8 + p.petY + 74);
       p.lookX = clamp((e.clientX - p.x) / 480, -1, 1);
       p.lookY = clamp((e.clientY - charCenterY) / 380, -1, 1);
@@ -138,8 +167,10 @@ function setupMouse() {
 
   window.addEventListener('mousedown', (e) => {
     let target = null;
-    for (const p of pets) { if (p.active && petHitTest(p, e.clientX, e.clientY)) target = p; }  // last (topmost) wins
+    for (const p of pets) { if (p.active && petHitTest(p, e.clientX, e.clientY)) target = p; }  // topmost wins
     if (!target) return;
+    // grabbing a napping pet wakes it
+    if (target.beh === 'sleep') { target.napPhase = null; try { target.napVid.pause(); } catch (err) {} target.beh = 'idle'; }
     target.dragging = true;
     target.dragMoved = false;
     target.downX = e.clientX;
@@ -185,6 +216,9 @@ function stepPet(p, dt, ts, f) {
   const { calm, realistic, char, videoMode } = f;
   const reacting = ts < p.reactUntil;
 
+  // excited / quiet modes shouldn't nap
+  if (p.beh === 'sleep' && (calm || phase === 'celebrate' || phase === 'soon')) endNap(p, 'idle');
+
   setDisplay(p.c3d, !realistic ? 'block' : 'none');
   setDisplay(p.photo, (realistic && !videoMode) ? 'block' : 'none');
   setDisplay(p.vidC, videoMode ? 'block' : 'none');
@@ -192,7 +226,11 @@ function stepPet(p, dt, ts, f) {
     const src = `assets/real-${char}.png`;
     if (p.photo.getAttribute('src') !== src) p.photo.setAttribute('src', src);
   }
-  if (videoMode && !p.vctrl) p.vctrl = window.VideoPet.create(p.vidC, vidEls);
+  if (videoMode && !p.vctrl) {
+    const map = { idle: vidEls.idle, walk: vidEls.walk, react: vidEls.react };
+    if (p.napVid.getAttribute('src')) map.nap = p.napVid;
+    p.vctrl = window.VideoPet.create(p.vidC, map);
+  }
 
   // live 3D character (skipped in realistic mode)
   if (!realistic && p.ctrl) {
@@ -201,14 +239,14 @@ function stepPet(p, dt, ts, f) {
     else if (reacting) behavior = 'happy';
     else if (calm) behavior = 'idle';
     else if (phase === 'celebrate') behavior = 'happy';
+    else if (p.beh === 'sleep' || phase === 'overtime') behavior = 'sleep';
     else if (phase === 'soon' || p.beh === 'walk') behavior = 'walk';
-    else if (phase === 'overtime' || p.beh === 'sleep') behavior = 'sleep';
     p.ctrl.setCharacter(char);
     p.ctrl.setState({ behavior, dir: p.dir, lookX: p.lookX, lookY: p.lookY });
     p.ctrl.frame(dt * 1000);
   }
 
-  // motion (realistic pet stays put; only drag / pat / celebrate hops)
+  // motion (realistic pet stays put; only drag / pat / celebrate / roam hops)
   let hopY = 0;
   if (p.dragging) {
     // mouse-driven
@@ -217,6 +255,10 @@ function stepPet(p, dt, ts, f) {
     if (p.petY <= 0) { p.petY = 0; p.vy = 0; }
   } else if (reacting) {
     hopY = Math.abs(Math.sin(ts / 110)) * 14;
+  } else if (p.beh === 'sleep') {
+    // nap state machine: fall asleep -> doze loop -> wake. drives the nap clip's playhead.
+    stepNap(p, ts, videoMode);
+    hopY = 0;
   } else if (realistic && !videoMode) {
     hopY = (!calm && phase === 'celebrate') ? Math.abs(Math.sin(ts / 160)) * 16 : 0;
   } else if (calm) {
@@ -233,11 +275,8 @@ function stepPet(p, dt, ts, f) {
     hopY = Math.abs(Math.sin(ts / 150)) * 9;
   } else if (p.beh === 'idle') {
     hopY = Math.abs(Math.sin(ts / 320)) * 2;
-    if (Math.random() < 0.004) p.vy = 200;
+    if (Math.random() < 0.003) p.vy = 200;
     if (ts >= p.behUntil) nextBehavior(p, ts);
-  } else if (p.beh === 'sleep') {
-    hopY = Math.sin(ts / 650) * 2;
-    if (ts >= p.behUntil) { p.beh = 'walk'; pickTarget(p); }
   }
 
   const lift = p.petY + hopY;
@@ -258,6 +297,7 @@ function stepPet(p, dt, ts, f) {
     if (videoMode) {
       let vbeh = 'idle';
       if (reacting) vbeh = 'react';
+      else if (p.beh === 'sleep') vbeh = 'nap';
       else if (!calm && (phase === 'celebrate' || phase === 'soon' || p.beh === 'walk')) vbeh = 'walk';
       if (p.vctrl) { p.vctrl.setBehavior(vbeh); p.vctrl.frame(); }
       const flip = (vbeh === 'walk' && p.dir < 0) ? -1 : 1;
@@ -278,6 +318,26 @@ function stepPet(p, dt, ts, f) {
   }
 }
 
+// falling asleep -> doze loop -> wake, then back to idle. Works with or without the nap video.
+function stepNap(p, ts, videoMode) {
+  const nv = p.napVid;
+  const hasVid = videoMode && nv && nv.getAttribute('src');
+  const ct = hasVid ? nv.currentTime : 0;
+  if (p.napPhase === 'in') {
+    if (!hasVid || ct >= NAP_T1) p.napPhase = 'doze';
+  } else if (p.napPhase === 'doze') {
+    if (hasVid && (ct >= NAP_T2 || ct < NAP_T1 - 0.15)) { try { nv.currentTime = NAP_T1; } catch (e) { /* ignore */ } }
+    if (ts >= p.dozeUntil) {
+      p.napPhase = 'out';
+      if (hasVid) { try { nv.currentTime = NAP_T2; nv.play().catch(() => {}); } catch (e) { /* ignore */ } }
+    }
+  } else if (p.napPhase === 'out') {
+    if (!hasVid || ct >= NAP_DUR) endNap(p, Math.random() < 0.3 ? 'walk' : 'idle');
+  } else {
+    p.napPhase = 'in';
+  }
+}
+
 // ---- main loop ----------------------------------------------------------
 function loop(ts) {
   if (lastTs === null) lastTs = ts;
@@ -290,14 +350,17 @@ function loop(ts) {
   const vset = realistic ? VIDEO_SET[char] : null;
   const videoMode = !!vset;
 
-  // load the shared behaviour videos when the character changes
+  // load the behaviour videos when the character changes
   if (videoMode && curVideoChar !== char) {
     curVideoChar = char;
     for (const k of ['idle', 'walk', 'react']) {
       const src = vset[k] || vset.idle;
       if (vidEls[k].getAttribute('src') !== src) { vidEls[k].src = src; vidEls[k].play().catch(() => {}); }
     }
-    for (const p of pets) p.vctrl = null;   // rebind each pet's chroma-key to the new textures
+    for (const p of pets) {
+      if (vset.nap && p.napVid.getAttribute('src') !== vset.nap) p.napVid.src = vset.nap;
+      p.vctrl = null;   // rebind chroma-key to the new textures
+    }
   }
   if (!videoMode) curVideoChar = null;
 

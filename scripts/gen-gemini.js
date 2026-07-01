@@ -13,7 +13,7 @@ async function main() {
   let url, body, extract;
   if (model.startsWith('imagen')) {
     url = BASE + model + ':predict';
-    body = { instances: [{ prompt }], parameters: { sampleCount: 1, aspectRatio: '1:1', personGeneration: 'allow_all' } };
+    body = { instances: [{ prompt }], parameters: { sampleCount: 1, aspectRatio: process.env.ASPECT || '1:1', personGeneration: 'allow_all' } };
     extract = (j) => j.predictions && j.predictions[0] && j.predictions[0].bytesBase64Encoded;
   } else {
     url = BASE + model + ':generateContent';

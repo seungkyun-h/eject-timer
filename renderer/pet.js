@@ -49,8 +49,8 @@ let lookX = 0, lookY = 0;   // cursor direction, for head/eye tracking
 
 let lastTs = null;
 
-const SPEED_WALK = 60;
-const SPEED_FAST = 150;
+const SPEED_WALK = 32;   // calmer roam (was 60)
+const SPEED_FAST = 88;   // excited pace near clock-out (was 150)
 const GRAVITY = 2600;
 const MARGIN = 80;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -279,7 +279,7 @@ function loop(ts) {
     bubbleEl.textContent = reacting ? (settings && settings.char === 'shrimp' ? '🦐 간지러새우~' : '💕 헤헤') : bubbleText;
     bubbleEl.style.display = 'block';
     bubbleEl.style.left = x + 'px';
-    bubbleEl.style.bottom = (132 + lift) + 'px';
+    bubbleEl.style.bottom = (150 + lift) + 'px';   // sit just above the hamster's head (new clip framing)
   } else {
     bubbleEl.style.display = 'none';
   }

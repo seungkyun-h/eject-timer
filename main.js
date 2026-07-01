@@ -12,7 +12,7 @@ let settings = null;
 // settings store (canonical state lives in main process, persisted to disk)
 // ---------------------------------------------------------------------------
 const SETTINGS_PATH = path.join(app.getPath('userData'), 'settings.json');
-const DEFAULTS = { shift: 'A', char: 'hamster', onTop: true, pet: false, calm: false, realistic: false, overtime: { date: '', minutes: 0 } };
+const DEFAULTS = { shift: 'A', char: 'hamster', onTop: true, pet: false, calm: false, realistic: false, display: null, overtime: { date: '', minutes: 0 } };
 
 function todayStr() {
   const d = new Date();
@@ -54,6 +54,7 @@ function updateState(partial) {
   if (partial.onTop !== undefined && widgetWin && !widgetWin.isDestroyed()) {
     widgetWin.setAlwaysOnTop(settings.onTop, 'floating');
   }
+  if (partial.display !== undefined) { fitPetToDisplays(); rebuildTrayMenu(); }
   if (settings.pet !== prevPet) applyPet();
   broadcast();
   return settings;
@@ -104,11 +105,19 @@ function createWidget() {
 // always-on-top overlay that covers the whole display. Because it ignores
 // mouse events, your clicks pass through to whatever is behind it — so the
 // character appears to run around freely on the desktop with no visible window.
-// Cover the PRIMARY display's work area so the pet always lives on the main
-// screen (above the Dock), where it is easy to find. (Multi-monitor roaming is
-// disabled for now because heavily-offset displays need per-display floors.)
+// The pet lives on ONE chosen display (settings.display = that display's id;
+// null = primary). If the chosen monitor is unplugged, we fall back to primary.
+function chosenDisplay() {
+  if (settings && settings.display != null) {
+    const d = screen.getAllDisplays().find((x) => x.id === settings.display);
+    if (d) return d;
+  }
+  return screen.getPrimaryDisplay();
+}
+
+// Cover the chosen display's work area (above the Dock), where the pet roams.
 function petAreaBounds() {
-  const wa = screen.getPrimaryDisplay().workArea;
+  const wa = chosenDisplay().workArea;
   return { x: wa.x, y: wa.y, width: wa.width, height: wa.height };
 }
 
@@ -176,14 +185,28 @@ function toggleWidget() {
 // ---------------------------------------------------------------------------
 // tray (macOS menu bar)
 // ---------------------------------------------------------------------------
+// One radio entry per monitor, so the pet can be moved to any display.
+function displayMenuItems() {
+  const primaryId = screen.getPrimaryDisplay().id;
+  const selId = chosenDisplay().id;
+  return screen.getAllDisplays().map((d, i) => ({
+    label: `모니터 ${i + 1} — ${d.size.width}×${d.size.height}${d.id === primaryId ? ' (주)' : ''}`,
+    type: 'radio',
+    checked: d.id === selId,
+    click: () => updateState({ display: d.id }),
+  }));
+}
+
 function rebuildTrayMenu() {
   if (!tray) return;
+  const multiDisplay = screen.getAllDisplays().length > 1;
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: '창 보이기 / 숨기기', click: toggleWidget },
     {
       label: settings.pet ? '🐾 데스크톱 펫 끄기' : '🐾 데스크톱 펫 켜기',
       click: () => updateState({ pet: !settings.pet }),
     },
+    ...(multiDisplay ? [{ label: '🖥 펫 위치 모니터', submenu: displayMenuItems() }] : []),
     {
       label: settings.calm ? '🧘 가만히 모드 끄기' : '🧘 가만히 모드 켜기',
       click: () => updateState({ calm: !settings.calm }),
@@ -238,10 +261,11 @@ app.whenReady().then(() => {
   createTray();
   applyPet();
 
-  // keep the pet overlay covering all monitors as they change
-  screen.on('display-metrics-changed', fitPetToDisplays);
-  screen.on('display-added', fitPetToDisplays);
-  screen.on('display-removed', fitPetToDisplays);
+  // keep the pet on its chosen display as monitors change; refresh the picker too
+  const onDisplaysChanged = () => { fitPetToDisplays(); rebuildTrayMenu(); };
+  screen.on('display-metrics-changed', onDisplaysChanged);
+  screen.on('display-added', onDisplaysChanged);
+  screen.on('display-removed', onDisplaysChanged);
 
   app.on('activate', () => {
     if (!widgetWin || widgetWin.isDestroyed()) createWidget();
